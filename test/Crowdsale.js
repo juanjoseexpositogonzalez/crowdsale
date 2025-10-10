@@ -36,6 +36,10 @@ describe('Crowdsale', () => {
 
     describe('Deployment', () => {
 
+        it('checks the ownership', async () => {
+            expect(await crowdsale.owner()).to.equal(deployer.address);
+        })
+
         it('sends tokens to Crowdsale contract', async () => {
             expect(await token.balanceOf(crowdsale.address)).to.equal(tokens(1000000));
         });
@@ -75,14 +79,15 @@ describe('Crowdsale', () => {
 
             it('updates tokensSold', async () => {
                 expect(await crowdsale.tokensSold()).to.equal(amount);
-            })
+            });
 
             it('emits Buy event', async () => {
                 // .--> https://v2.hardhat.org/hardhat-chai-matchers/docs/reference
                 await expect(transaction).to.emit(crowdsale, 'Buy')
                     .withArgs(amount, user1.address);
 
-            })
+            });
+
         });
 
         describe('Failure', () => {
@@ -115,8 +120,76 @@ describe('Crowdsale', () => {
 
             it('updates user token balance', async () => {
                 expect(await token.balanceOf(user1.address)).to.equal(amount);
-            })
+            });
+
 
         });
+    })
+
+    describe('Update price', () => {
+        let transaction, result;
+        let price = ether(2);
+
+        describe('Success', () => {
+
+            beforeEach(async () => {
+                transaction = await crowdsale.connect(deployer).setPrice(ether(2));
+                result = await transaction.wait();
+            });
+
+            it('updates the price', async () => {
+                expect(await crowdsale.price()).to.equal(ether(2));
+            })
+        });
+
+        describe('Failure', () => {
+
+            it('prevents non-owner from updating price', async () => {
+                await expect(crowdsale.connect(user1).setPrice(price)).to.be.reverted;
+            });
+        });
+
+    })
+
+    describe('Finalize Sale', () => {
+        let transaction, result;
+        let amount = tokens(10);
+        let value = ether(10);
+
+        describe('Success', () => {
+
+            beforeEach(async () => {
+                transaction = await crowdsale.connect(user1).buyTokens(amount, { value: value });
+                result = await transaction.wait();
+
+                transaction = await crowdsale.connect(deployer).finalize();
+                result = await transaction.wait();
+            });
+
+            it('transfer remaining tokens to owner', async () => {
+                expect(await token.balanceOf(crowdsale.address)).to.equal(0);
+                expect(await token.balanceOf(deployer.address)).to.equal(tokens(999990));
+            });
+
+            it('transfers ETH balance to the owner', async () => {
+                expect(await ethers.provider.getBalance(crowdsale.address)).to.equal(0);
+                // expect(await ethers.provider.getBalance(deployer.address)).to.equal(value);
+            });
+
+            it('emits Finalize event', async () => {
+                await expect(transaction).to.emit(crowdsale, 'Finalize')
+                    .withArgs(amount, value);
+
+            });
+
+        });
+
+        describe('Failure', () => {
+
+            it('prevents non-owner from finalizer', async () => {
+                await expect(crowdsale.connect(user1).finalize()).to.be.reverted;
+            })
+        })
+
     })
 });
