@@ -39,8 +39,7 @@ function App() {
         const { chainId } = await provider.getNetwork();
         setChainId(chainId);
 
-        // Initiate contracts
-
+        // Initiate contracts        
         const token = new ethers.Contract(config[chainId].token.address, TOKEN_ABI, provider);
         const crowdsale = new ethers.Contract(config[chainId].crowdsale.address, CROWDSALE_ABI, provider);
         setCrowdsale(crowdsale);
@@ -76,7 +75,7 @@ function App() {
         if (isLoading) {
             loadBlockchainData();
         }
-    }, [isLoading]);
+    }, [isLoading, chainId]);
 
     return (
         <Container>
