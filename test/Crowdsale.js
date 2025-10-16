@@ -214,6 +214,19 @@ describe('Crowdsale', () => {
                 await transaction.wait();
                 expect(await crowdsale.isWhitelisted(whitelisted)).to.be.false;
             });
+
+            it('emits Whitelisted event', async () => {
+                await expect(transaction).to.emit(crowdsale, 'Whitelisted')
+                    .withArgs(whitelisted);
+
+            });
+
+            it('emits Blacklisted event', async () => {
+                transaction = await crowdsale.connect(deployer).removeFromWhitelist(whitelisted);
+                await transaction.wait();
+                await expect(transaction).to.emit(crowdsale, 'Blacklisted')
+                    .withArgs(whitelisted);
+            });
         });
 
         describe('Failure', () => {

@@ -21,6 +21,14 @@ contract Crowdsale {
         uint256 ethRaised
     );
 
+    event Whitelisted(
+        address whitelisted
+    );
+
+    event Blacklisted(
+        address blacklisted
+    );
+
     constructor(
         Token _token,
         uint256 _price,
@@ -72,19 +80,24 @@ contract Crowdsale {
         emit Finalize(tokensSold, value);
     }
 
-    function addToWhitelist(address _people) public onlyOwner {
+    function addToWhitelist(address _people) public onlyOwner returns (bool success) {
         require(!whitelist[_people]);
         whitelist[_people] = true;
+
+        emit Whitelisted(_people);
+        return true;
     }
 
     function isWhitelisted(address _people) public view returns (bool whitelisted) {
         return whitelist[_people];
     }
 
-    function removeFromWhitelist(address _people) public onlyOwner {
+    function removeFromWhitelist(address _people) public onlyOwner returns (bool success) {
         require(whitelist[_people]);
         whitelist[_people] = false;
-    }
 
+        emit Blacklisted(_people);
+        return true;
+    }
     
 }
