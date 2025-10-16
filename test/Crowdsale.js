@@ -64,6 +64,7 @@ describe('Crowdsale', () => {
         describe('Success', () => {
 
             beforeEach(async () => {
+                await crowdsale.connect(deployer).addToWhitelist(user1.address);
                 transaction = await crowdsale.connect(user1).buyTokens(amount, { value: ether(10) });
                 result = await transaction.wait();
             });
@@ -109,6 +110,7 @@ describe('Crowdsale', () => {
         describe('Success', () => {
 
             beforeEach(async () => {
+                await crowdsale.connect(deployer).addToWhitelist(user1.address);
                 transaction = await user1.sendTransaction({ to: crowdsale.address, value: amount });;
                 result = await transaction.wait();
             });
@@ -124,7 +126,7 @@ describe('Crowdsale', () => {
 
 
         });
-    })
+    });
 
     describe('Update price', () => {
         let transaction, result;
@@ -149,7 +151,7 @@ describe('Crowdsale', () => {
             });
         });
 
-    })
+    });
 
     describe('Finalize Sale', () => {
         let transaction, result;
@@ -159,6 +161,7 @@ describe('Crowdsale', () => {
         describe('Success', () => {
 
             beforeEach(async () => {
+                await crowdsale.connect(deployer).addToWhitelist(user1.address);
                 transaction = await crowdsale.connect(user1).buyTokens(amount, { value: value });
                 result = await transaction.wait();
 
@@ -191,5 +194,35 @@ describe('Crowdsale', () => {
             })
         })
 
-    })
+    });
+
+    describe('Whitelisting', () => {
+        let transaction, whitelisted;
+        beforeEach(async () => {
+            whitelisted = ethers.utils.getAddress(accounts[2].address);
+            transaction = await crowdsale.connect(deployer).addToWhitelist(whitelisted);
+            await transaction.wait();
+        });
+
+        describe('Success', () => {
+            it('correctly adds user to whitelist', async () => {
+                expect(await crowdsale.isWhitelisted(whitelisted)).to.be.true;
+            });
+
+            it('correctly removes user from whitelist', async () => {
+                transaction = await crowdsale.connect(deployer).removeFromWhitelist(whitelisted)
+                await transaction.wait();
+                expect(await crowdsale.isWhitelisted(whitelisted)).to.be.false;
+            });
+        });
+
+        describe('Failure', () => {
+            it('rejects whitelisting by non-owner', async () => {
+                await expect(crowdsale.connect(user1).addToWhitelist(whitelisted)).to.be.reverted;
+            });
+            it('rejects whitelisting by non-owner', async () => {
+                await expect(crowdsale.connect(user1).removeFromWhitelist(whitelisted)).to.be.reverted;
+            });
+        });
+    });
 });
