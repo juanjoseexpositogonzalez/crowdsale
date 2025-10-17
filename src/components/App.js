@@ -21,7 +21,7 @@ function App() {
     const [provider, setProvider] = useState(null);
     const [crowdsale, setCrowdsale] = useState(null);
 
-    const [account, setAccount] = useState(null);
+    const [account, setAccount] = useState("");
     const [accountBalance, setAccountBalance] = useState(0);
 
     const [price, setPrice] = useState(0);
@@ -29,7 +29,7 @@ function App() {
     const [tokensSold, setTokensSold] = useState(0);
 
     const [isLoading, setIsLoading] = useState(true);
-    const [chainId, setChainId] = useState(0);
+    const [chainId, setChainId] = useState("");
 
 
     const loadBlockchainData = async () => {
