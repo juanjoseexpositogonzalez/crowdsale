@@ -75,7 +75,7 @@ function App() {
         if (isLoading) {
             loadBlockchainData();
         }
-    }, [isLoading, chainId]);
+    }, [isLoading]);
 
     return (
         <Container>

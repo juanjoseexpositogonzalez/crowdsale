@@ -10,6 +10,7 @@ contract Crowdsale {
     uint256 public maxTokens;
     uint256 public tokensSold;
     mapping(address=>bool) public whitelist;
+    bool public finalized;
 
     event Buy(
         uint256 amount,
