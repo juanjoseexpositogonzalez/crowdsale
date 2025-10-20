@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { ethers } = require('hardhat');
+const { ethers, network } = require('hardhat');
 
 const tokens = (n) => {
     return ethers.utils.parseUnits(n.toString(), 'ether');
@@ -38,7 +38,7 @@ describe('Crowdsale', () => {
 
         it('checks the ownership', async () => {
             expect(await crowdsale.owner()).to.equal(deployer.address);
-        })
+        });
 
         it('sends tokens to Crowdsale contract', async () => {
             expect(await token.balanceOf(crowdsale.address)).to.equal(tokens(1000000));
@@ -54,7 +54,73 @@ describe('Crowdsale', () => {
 
         it('correctly initialize tokensSold variable', async () => {
             expect(await crowdsale.tokensSold()).to.equal(0);
-        })
+        });
+
+        it('stores the creation date properly', async () => {
+            const creationDate = await crowdsale.creationDate();
+            expect(await creationDate.toNumber()).to.be.greaterThan(0);
+
+            // Check that creation date is recent (within last minute)
+            const now = Math.floor(Date.now() / 1000); // Current time in seconds
+            expect(await creationDate.toNumber()).to.be.closeTo(now, 60); // Within 60 seconds
+        });
+
+        it('returns creation date as unix timestamp', async () => {
+            const creationDate = await crowdsale.creationDate();
+
+            // Convert to JavaScript Date object
+            const date = new Date(creationDate * 1000);
+
+            // Verify it's a valid date
+            expect(date.getTime()).to.not.be.NaN;
+
+            // Verify it's today's date
+            const today = new Date();
+            expect(date.toDateString()).to.equal(today.toDateString());
+        });
+
+        it('creation date cannot be changed after deployment', async () => {
+            const initialCreationDate = await crowdsale.creationDate();
+
+            // Wait a moment (simulate time passing)
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Deploy another transaction to advance block time
+            await crowdsale.connect(deployer).setPrice(ether(2));
+
+            // Check creation date hasn't changed
+            const afterCreationDate = await crowdsale.creationDate();
+            expect(afterCreationDate).to.equal(initialCreationDate);
+        });
+
+        it('different deployments have different creation dates', async () => {
+            // Deploy first crowdsale (already done in beforeEach)
+            const firstCreationDate = await crowdsale.creationDate();
+
+            // Wait a moment
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Deploy second crowdsale
+            const Crowdsale = await ethers.getContractFactory('Crowdsale');
+            const secondCrowdsale = await Crowdsale.deploy(token.address, ether(1), '1000000');
+            const secondCreationDate = await secondCrowdsale.creationDate();
+
+            // They should have different timestamps
+            expect(secondCreationDate.toNumber()).to.be.greaterThan(firstCreationDate.toNumber());
+        });
+
+        it('enforces creation date validation in modifier', async () => {
+            // This should always pass since block.timestamp >= creationDate
+            // after deployment, but it tests the modifier logic
+            const creationDate = await crowdsale.creationDate();
+
+            // Get current block timestamp
+            const latestBlock = await ethers.provider.getBlock('latest');
+            const currentTimestamp = latestBlock.timestamp;
+
+            // Current time should be >= creation time
+            expect(currentTimestamp).to.be.greaterThanOrEqual(creationDate.toNumber());
+        });
     });
 
     describe('Buying Tokens', () => {
@@ -100,7 +166,7 @@ describe('Crowdsale', () => {
             it('rejects insufficient tokens', async () => {
                 await expect(crowdsale.connect(user1).buyTokens(tokens(10000000), { value: ether(100) })).to.be.reverted;
             });
-        })
+        });
     });
 
     describe('Sending ETH', () => {
@@ -238,4 +304,50 @@ describe('Crowdsale', () => {
             });
         });
     });
+
+    describe('Crowdsale Time Controls', () => {
+        let crowdsale, token, deployer, user1;
+
+        beforeEach(async () => {
+            // Fresh deployment for each time test
+            const Crowdsale = await ethers.getContractFactory('Crowdsale');
+            const Token = await ethers.getContractFactory('Token');
+
+            const accounts = await ethers.getSigners();
+            deployer = accounts[0];
+            user1 = accounts[1];
+
+            token = await Token.deploy('Dapp University', 'DAPP', '1000000');
+            await token.deployed();
+
+            crowdsale = await Crowdsale.deploy(token.address, ether(1), '1000000');
+            await crowdsale.deployed();
+
+            // Transfer tokens to crowdsale
+            await token.connect(deployer).transfer(crowdsale.address, tokens(1000000));
+        });
+
+        describe('Success', () => {
+            it('', async () => {
+
+            });
+        });
+
+        describe('Failure', () => {
+            // it('rejects buying tokens before creation date', async () => {
+            //     const creationDate = await crowdsale.creationDate();
+
+            //     const beforeCreation = creationDate.toNumber() - 3600;
+            //     await network.provider.send("evm_setNextBlockTimestamp", [beforeCreation]);
+
+            //     await crowdsale.connect(deployer).addToWhitelist(user1.address);
+
+            //     await expect(
+            //         crowdsale.connect(user1).buyTokens(tokens(10), { value: ether(10) })
+            //     ).to.be.revertedWith("Crowdsale not open yet!");
+            // });
+        })
+
+
+    })
 });

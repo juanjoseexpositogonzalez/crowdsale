@@ -11,6 +11,7 @@ contract Crowdsale {
     uint256 public tokensSold;
     mapping(address=>bool) public whitelist;
     bool public finalized;
+    uint256 public creationDate;
 
     event Buy(
         uint256 amount,
@@ -40,6 +41,7 @@ contract Crowdsale {
         price = _price;
         tokensSold = 0;
         maxTokens = _maxTokens;
+        creationDate = block.timestamp;
     }
 
     modifier onlyOwner() {
@@ -52,12 +54,18 @@ contract Crowdsale {
         _;
     }
 
+    modifier onlyAfterCreation()
+    {   
+        require(block.timestamp >= creationDate, "Crowdsale not open yet!");
+        _;
+    }
+
     receive() external payable {
         uint256 amount = msg.value / price;
         buyTokens(amount * 1e18);
     }
 
-    function buyTokens(uint256 _amount) public payable onlyWhiteListed {
+    function buyTokens(uint256 _amount) public payable onlyWhiteListed onlyAfterCreation {
         require(msg.value == (_amount / 1e18) * price);
         require(token.balanceOf(address(this)) >= _amount);
         require(token.transfer(msg.sender, _amount));
@@ -99,6 +107,5 @@ contract Crowdsale {
 
         emit Blacklisted(_people);
         return true;
-    }
-    
+    }    
 }
